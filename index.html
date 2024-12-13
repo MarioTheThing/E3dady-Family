@@ -6,10 +6,44 @@
     <title>Leaderboard</title>
     <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            text-align: center;
+        }
+        select, table {
+            margin: 20px auto;
+            display: block;
+            width: 80%;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        tr:nth-child(1) { color: red; }
+        tr:nth-child(2) { color: orange; }
+        tr:nth-child(3) { color: blue; }
+    </style>
 </head>
 <body>
     <h1>Leaderboard</h1>
-    <table border="1">
+
+    <!-- Dropdown for Category Selection -->
+    <select id="categorySelect">
+        <option value="overall">Overall</option>
+        <option value="firstPrep">First Prep</option>
+        <option value="secondPrep">Second Prep</option>
+        <option value="thirdPrep">Third Prep</option>
+    </select>
+
+    <!-- Leaderboard Table -->
+    <table>
         <thead>
             <tr>
                 <th>Rank</th>
@@ -22,7 +56,7 @@
 
     <script>
         // Firebase Configuration
-        const firebaseConfig = {
+                const firebaseConfig = {
     apiKey: "AIzaSyCfQi2ee9xx77L2Tpd_KxWPEsvCuo-Rm0M",
     authDomain: "st-anthony-services.firebaseapp.com",
     projectId: "st-anthony-services",
@@ -30,33 +64,62 @@
     messagingSenderId: "446418750687",
     appId: "1:446418750687:web:056c5a238c19dfd536ad6a",
     measurementId: "G-18173GBDE8"
-  }
+  };
 
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore(app);
 
-        // Fetch leaderboard data
-        const leaderboardTable = document.getElementById('leaderboard');
+        // Elements
+        const leaderboardTable = document.getElementById("leaderboard");
+        const categorySelect = document.getElementById("categorySelect");
 
-        db.collection("leaderboard").orderBy("points", "desc").limit(10)
-            .get()
-            .then(querySnapshot => {
+        // Fetch Leaderboard Data
+        function fetchLeaderboard(category) {
+            let query = db.collection("children");
+
+            switch (category) {
+                case "firstPrep":
+                    query = query.where("grade", "==", "First Prep").orderBy("totalPoints", "desc");
+                    break;
+                case "secondPrep":
+                    query = query.where("grade", "==", "Second Prep").orderBy("totalPoints", "desc");
+                    break;
+                case "thirdPrep":
+                    query = query.where("grade", "==", "Third Prep").orderBy("totalPoints", "desc");
+                    break;
+                case "overall":
+                default:
+                    query = query.orderBy("totalPoints", "desc");
+                    break;
+            }
+
+            query.limit(10).get().then(querySnapshot => {
+                leaderboardTable.innerHTML = ""; // Clear existing rows
                 querySnapshot.forEach((doc, index) => {
                     const data = doc.data();
                     const row = `
                         <tr>
                             <td>${index + 1}</td>
-                            <td>${data.name}</td>
-                            <td>${data.points}</td>
+                            <td>${data.name || "N/A"}</td>
+                            <td>${data.totalPoints || 0}</td>
                         </tr>
                     `;
                     leaderboardTable.innerHTML += row;
                 });
-            })
-            .catch(error => {
+            }).catch(error => {
                 console.error("Error fetching leaderboard data: ", error);
             });
+        }
+
+        // Initial Fetch
+        fetchLeaderboard(categorySelect.value);
+
+        // Fetch on Category Change
+        categorySelect.addEventListener("change", (e) => {
+            fetchLeaderboard(e.target.value);
+        });
     </script>
 </body>
 </html>
+
